@@ -2,18 +2,26 @@ package com.canque.todo.adapters
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.view.Window
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.recyclerview.widget.RecyclerView
 import com.canque.todo.R
 import com.canque.todo.TaskActivity
 import com.canque.todo.constants.Constants
 import com.canque.todo.databinding.ItemTaskBinding
+import com.canque.todo.datastore.SharedPref
 import com.canque.todo.models.Task
 
 class TaskAdapter(
@@ -33,8 +41,49 @@ class TaskAdapter(
                 activity.startActivity(intent)
             }
             binding.details.setOnClickListener() {
-                Toast.makeText(activity, "Sorry, this feature is incomplete.", Toast.LENGTH_SHORT).show()
+                showDialog(task, activity)
             }
+        }
+        private fun showDialog(task: Task, context: Context) {
+            val sheet = Dialog(context)
+            sheet.requestWindowFeature(Window.FEATURE_NO_TITLE)
+            sheet.setContentView(R.layout.bottom_sheet)
+
+            val deleteLayout: LinearLayout = sheet.findViewById(R.id.layoutDelete)
+
+            deleteLayout.setOnClickListener() {
+                Toast.makeText(context, "This is a standard AlertDialog.", Toast.LENGTH_SHORT).show()
+                val builder = androidx.appcompat.app.AlertDialog.Builder(context, R.style.RoundedCornersAlertDialog)
+                builder
+                    .setTitle("Delete task?")
+                    .setMessage("This can’t be undone and it will be removed from your to-do list.")
+                    .setPositiveButton("Delete"){ dialog, _ ->
+                        val id = task.id
+                        val sharedPref = SharedPref(context)
+                        var tasks = sharedPref.loadTaskList().toMutableList()
+
+                        tasks = tasks.filter { it.id != id }.toMutableList()
+                        sharedPref.saveTaskList(tasks)
+                    }
+                    .setNegativeButton("Cancel"){dialog,_ ->
+                        dialog.dismiss()
+                    }
+                val alertDialog = builder.create()
+                alertDialog.setOnShowListener {
+                    alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                        ?.setTextColor(ContextCompat.getColor(context, android.R.color.black))
+                    alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)
+                        ?.setTextColor(ContextCompat.getColor(context, android.R.color.black))
+                }
+                alertDialog.show()
+                sheet.dismiss()
+            }
+
+            sheet.show()
+            sheet.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            sheet.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            sheet.window?.attributes?.windowAnimations = R.style.DialogAnimation
+            sheet.window?.setGravity(Gravity.BOTTOM)
         }
     }
 

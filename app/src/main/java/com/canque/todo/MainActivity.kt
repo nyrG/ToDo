@@ -29,9 +29,11 @@ class MainActivity : AppCompatActivity() {
         initStatusBar()
         val sharedPref = SharedPref(this)
         val tasks = sharedPref.loadTaskList().toMutableList()
+        binding.counterTextView.text = tasks.size.toString()
 
         binding.add.setOnClickListener {
             showCustomDialog(tasks)
+            Toast.makeText(this, "This is an AlertDialog with input texts.", Toast.LENGTH_SHORT).show()
         }
 
         Log.d("Task List", "$tasks")
@@ -45,15 +47,12 @@ class MainActivity : AppCompatActivity() {
         binding.taskList.layoutManager = LinearLayoutManager(this)
         binding.taskList.adapter = TaskAdapter(this, tasks)
     }
-
     override fun onResume() {
-        super.onResume()
-
         val sharedPref = SharedPref(this)
         val tasks = sharedPref.loadTaskList().toMutableList()
-        binding.counterTextView.text = tasks.size.toString()
+        super.onResume()
+        refreshList(tasks)
     }
-
     private fun showCustomDialog(tasks: MutableList<Task>) {
         val inflater = LayoutInflater.from(this)
         val view = inflater.inflate(R.layout.layout_custom_dialog, null)
@@ -61,22 +60,21 @@ class MainActivity : AppCompatActivity() {
         val editText1 = view.findViewById<EditText>(R.id.nameEditText)
         val editText2 = view.findViewById<EditText>(R.id.descriptionEditText)
 
-        val alertDialogBuilder = AlertDialog.Builder(this)
+        val alertDialogBuilder = AlertDialog.Builder(this, R.style.RoundedCornersAlertDialog)
         alertDialogBuilder.setView(view)
         alertDialogBuilder.setPositiveButton("OK") { dialog, which ->
             // Retrieve the text inputted by the user
             val text1 = editText1.text.toString()
             val text2 = editText2.text.toString()
-
             // Do something with the input
             val sharedPref = SharedPref(this)
             //tasks = sharedPref.loadTaskList().toMutableList()
-
             if(!(text1.isNullOrEmpty())) {
                 val task = Task( genId(20),"$text1", "$text2", null)
                 tasks.add(task)
                 sharedPref.saveTaskList(tasks)
                 refreshList(tasks)
+                Toast.makeText(this, "Task added!", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Your task should have a name.", Toast.LENGTH_SHORT).show()
             }
@@ -84,8 +82,13 @@ class MainActivity : AppCompatActivity() {
         alertDialogBuilder.setNegativeButton("Cancel") { dialog, which ->
             dialog.dismiss()
         }
-
         val alertDialog = alertDialogBuilder.create()
+        alertDialog.setOnShowListener {
+            alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                ?.setTextColor(ContextCompat.getColor(this, android.R.color.black))
+            alertDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)
+                ?.setTextColor(ContextCompat.getColor(this, android.R.color.black))
+        }
         alertDialog.show()
     }
 
@@ -105,11 +108,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshList(list: MutableList<Task>) {
         val sharedPref = SharedPref(this)
+        //val list = sharedPref.loadTaskList().toMutableList()
 
         list.clear()
         list.addAll(sharedPref.loadTaskList().toMutableList())
         binding.taskList.adapter!!.notifyDataSetChanged()
         binding.counterTextView.text = list.size.toString()
         binding.swipeRefreshLayout.isRefreshing = false
+        Log.d("Refreshed Task List", "$list")
     }
 }
